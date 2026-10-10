@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bản đồ số biển đảo Việt Nam</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--navy:#082f49;--blue:#087eaa;--cyan:#dff6ff;--paper:#f6fbff;--ink:#153047;--muted:#60798b}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--paper);color:var(--ink)}
+header{background:linear-gradient(120deg,#062a43,#075985 70%,#0891b2);color:#fff;padding:22px clamp(16px,4vw,48px);display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:13px}.logo{width:48px;height:48px;border-radius:15px;background:#ffffff20;display:grid;place-items:center;font-size:26px;border:1px solid #ffffff50}
+h1{font-size:clamp(20px,3vw,30px);margin:0 0 5px}.subtitle{margin:0;color:#d9f3ff;font-size:13px}
+.header-tag{font-size:12px;border:1px solid #ffffff55;padding:8px 12px;border-radius:30px}
+main{padding:18px clamp(12px,3vw,36px) 30px;max-width:1600px;margin:auto}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.toolbar input,.toolbar select{flex:1;min-width:150px}
+input,select,textarea,button{font:inherit;border-radius:10px;border:1px solid #c8d9e4;padding:10px 12px;background:#fff;color:var(--ink)}
+button{cursor:pointer;background:var(--navy);color:white;border-color:var(--navy);font-weight:600}button.secondary{background:white;color:var(--navy);border-color:#c8d9e4}button:hover{filter:brightness(1.08)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:15px;align-items:stretch}
+.map-card,.panel{background:white;border:1px solid #d9e7ef;border-radius:17px;overflow:hidden;box-shadow:0 8px 24px #103c5510}
+#map{height:min(72vh,760px);min-height:470px;width:100%}.map-caption{padding:10px 14px;color:var(--muted);font-size:12px;border-top:1px solid #e4eef4}
+.panel{padding:17px;max-height:820px;overflow:auto}.panel h2{font-size:17px;margin:0 0 12px}.stat{background:#eff9fd;padding:12px;border-radius:12px;margin-bottom:15px}.stat strong{font-size:23px;display:block;color:#075985}.stat span{font-size:12px;color:var(--muted)}
+.place-list{display:grid;gap:8px}.place{border:1px solid #e0ebf1;border-radius:11px;padding:10px 11px;cursor:pointer}.place:hover{background:#f2fbff;border-color:#83cce5}.place b{display:block;font-size:13px}.place small{color:var(--muted)}
+.section{border-top:1px solid #e1ebf0;margin-top:17px;padding-top:15px}.section label{display:block;font-size:12px;font-weight:700;margin:9px 0 5px}.section input,.section select,.section textarea{width:100%}.section textarea{resize:vertical;min-height:70px}.rowbtn{display:flex;gap:8px;margin-top:10px}.rowbtn button{flex:1;font-size:12px;padding:9px 7px}
+.note{font-size:12px;color:var(--muted);line-height:1.55}.status{font-size:12px;margin:10px 0;padding:9px 10px;background:#f1f7fa;border-radius:9px;overflow-wrap:anywhere}
+footer{text-align:center;color:#6a8291;font-size:11px;padding:20px}
+.leaflet-popup-content-wrapper{border-radius:12px}.popup-title{font-weight:800;font-size:15px;color:#075985;margin-bottom:5px}.popup-type{font-size:11px;color:#60798b;margin-bottom:7px}.popup-desc{line-height:1.5}
+@media(max-width:900px){.layout{grid-template-columns:1fr}#map{height:60vh;min-height:390px}.panel{max-height:none}.header-tag{display:none}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand"><div class="logo">🌊</div><div><h1>BẢN ĐỒ SỐ BIỂN ĐẢO VIỆT NAM</h1><p class="subtitle">Khám phá địa lý biển đảo • Tư liệu học tập • Bản đồ tương tác</p></div></div>
+ <div class="header-tag">BẢN ĐỒ GIÁO DỤC TƯƠNG TÁC</div>
+</header>
+<main>
+ <div class="toolbar">
+  <input id="search" placeholder="🔎 Tìm đảo, quần đảo, địa điểm..." aria-label="Tìm địa điểm">
+  <select id="filter"><option value="">Tất cả nhóm địa điểm</option><option>Quần đảo</option><option>Đảo</option><option>Vịnh / vùng biển</option><option>Ven biển</option></select>
+  <button id="showAll" class="secondary">Hiện toàn cảnh</button>
+ </div>
+ <div class="layout">
+  <section class="map-card"><div id="map"></div><div class="map-caption">Bản đồ nền © OpenStreetMap contributors. Vị trí đánh dấu có tính chất minh họa/giáo dục; hãy đối chiếu nguồn chính thống khi dùng cho báo cáo chính thức.</div></section>
+  <aside class="panel">
+   <div class="stat"><strong id="count">0</strong><span>Địa điểm đang có trên bản đồ</span></div>
+   <h2>📍 Danh sách địa điểm</h2>
+   <div id="places" class="place-list"></div>
+   <div id="adminHint" class="status">Chế độ xem thử. Chỉ quản trị viên được sửa dữ liệu khi đã cấu hình Firebase.</div>
+   <div id="loginPanel" class="section" style="display:none">
+    <h2>🔐 Đăng nhập quản trị</h2>
+    <form id="loginForm">
+     <label for="adminEmail">Email quản trị</label><input id="adminEmail" type="email" autocomplete="username" required placeholder="admin@example.com">
+     <label for="adminPassword">Mật khẩu</label><input id="adminPassword" type="password" autocomplete="current-password" required>
+     <button type="submit" style="width:100%;margin-top:10px">Đăng nhập</button>
+    </form>
+   </div>
+   <div class="section">
+    <h2>＋ Thêm địa điểm</h2>
+    <form id="addForm">
+     <label for="name">Tên địa điểm *</label><input id="name" required placeholder="Ví dụ: Đảo / quần đảo">
+     <label for="type">Nhóm địa điểm</label><select id="type"><option>Quần đảo</option><option>Đảo</option><option>Vịnh / vùng biển</option><option>Ven biển</option></select>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label for="lat">Vĩ độ *</label><input id="lat" type="number" step="any" required placeholder="16.0"></div><div><label for="lng">Kinh độ *</label><input id="lng" type="number" step="any" required placeholder="112.0"></div></div>
+     <label for="desc">Mô tả</label><textarea id="desc" placeholder="Thông tin địa lý, lịch sử, hệ sinh thái..."></textarea>
+     <button type="submit" style="width:100%;margin-top:12px">Thêm lên bản đồ</button>
+    </form>
+   </div>
+   <div class="section">
+    <h2>⇄ Dữ liệu & chia sẻ</h2>
+    <p class="note">Khi Firebase được cấu hình, mọi người có thể xem dữ liệu trực tuyến; chỉ tài khoản quản trị đã xác thực mới được ghi. Trước khi cấu hình, bản xem thử lưu dữ liệu cục bộ.</p>
+    <div class="rowbtn"><button id="export" class="secondary" type="button">Xuất JSON</button><button id="importBtn" class="secondary" type="button">Nhập JSON</button></div>
+    <input id="importFile" type="file" accept=".json,application/json" hidden>
+    <div id="status" class="status">Chế độ hiện tại: lưu trên thiết bị này.</div>
+   </div>
+   <div class="section">
+    <h2>☁️ Đồng bộ nhiều thiết bị (tùy chọn)</h2>
+    <p class="note">Để bật đồng bộ trực tuyến, mở tệp HTML bằng trình soạn thảo và điền cấu hình Firebase<section id="adminBar" style="display:none;max-width:1600px;margin:0 auto;padding:0 clamp(12px,3vw,36px) 14px">
+ <div style="background:#fff;border:1px solid #d9e7ef;border-radius:14px;padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+  <strong style="margin-right:auto">🔐 Khu vực quản trị</strong>
+  <span id="adminIdentity" style="font-size:12px;color:#60798b"></span>
+  <button id="seedCloud" class="secondary" type="button">Đưa dữ liệu mẫu lên cloud</button>
+  <button id="logout" class="secondary" type="button">Đăng xuất</button>
+ </div>
+</section>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+
+/*
+  CẤU HÌNH TRƯỚC KHI TRIỂN KHAI:
+  1) Điền cấu hình Firebase Web App vào FIREBASE_CONFIG.
+  2) Điền UID của tài khoản quản trị vào ADMIN_UID.
+  3) Dán rules trong firebase-database.rules.json vào Realtime Database > Rules.
+  Không đưa mật khẩu tài khoản vào mã nguồn.
+*/
+const FIREBASE_CONFIG = {
+  apiKey: "PASTE_FIREBASE_API_KEY",
+  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://PASTE_DATABASE_NAME-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "PASTE_PROJECT_ID",
+  appId: "PASTE_FIREBASE_APP_ID"
+};
+const ADMIN_UID = "PASTE_ADMIN_UID";
+const CLOUD_CONFIGURED = !Object.values(FIREBASE_CONFIG).some(v => String(v).includes("PASTE_")) &&
+                         !ADMIN_UID.includes("PASTE_");
+const STORAGE_KEY = 'bien_dao_viet_nam_v1';
+const initialPlaces = [
+ {id:'hs',name:'Quần đảo Hoàng Sa',type:'Quần đảo',lat:16.5,lng:112.0,desc:'Quần đảo ở Biển Đông. Vị trí đánh dấu trên bản đồ mang tính khái quát.'},
+ {id:'ts',name:'Quần đảo Trường Sa',type:'Quần đảo',lat:9.5,lng:113.0,desc:'Quần đảo ở khu vực phía nam Biển Đông. Vị trí đánh dấu trên bản đồ mang tính khái quát.'},
+ {id:'phuquy',name:'Đảo Phú Quý',type:'Đảo',lat:10.52,lng:108.93,desc:'Đảo ngoài khơi Nam Trung Bộ; kiểm tra đơn vị hành chính hiện hành khi dùng trong báo cáo.'},
+ {id:'condao',name:'Côn Đảo',type:'Quần đảo',lat:8.69,lng:106.61,desc:'Quần đảo ngoài khơi Nam Bộ, nổi bật với giá trị lịch sử và hệ sinh thái biển.'},
+ {id:'phuquoc',name:'Đảo Phú Quốc',type:'Đảo',lat:10.22,lng:103.96,desc:'Đảo lớn ở vịnh Thái Lan, có hệ sinh thái và hoạt động du lịch biển.'},
+ {id:'lyson',name:'Đảo Lý Sơn',type:'Đảo',lat:15.38,lng:109.12,desc:'Đảo ven bờ miền Trung, có cảnh quan núi lửa và truyền thống văn hóa biển.'},
+ {id:'catba',name:'Quần đảo Cát Bà',type:'Quần đảo',lat:20.80,lng:107.05,desc:'Khu vực đảo ở phía bắc Việt Nam, có giá trị đa dạng sinh học.'},
+ {id:'halong',name:'Vịnh Hạ Long',type:'Vịnh / vùng biển',lat:20.91,lng:107.08,desc:'Vịnh nổi tiếng với cảnh quan karst đá vôi và nhiều đảo đá.'},
+ {id:'dannang',name:'Bờ biển Đà Nẵng',type:'Ven biển',lat:16.05,lng:108.25,desc:'Đoạn bờ biển miền Trung; điểm đánh dấu đại diện.'},
+ {id:'vungtau',name:'Bờ biển Vũng Tàu',type:'Ven biển',lat:10.35,lng:107.08,desc:'Khu vực ven biển phía nam; điểm đánh dấu đại diện.'}
+];
+const map = L.map('map').setView([13.2,110.2],5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+const markerLayer=L.layerGroup().addTo(map);
+let places = [];
+let isAdmin = false;
+let cloudReady = false;
+let db = null, auth = null;
+let stopCloudListener = null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const statusEl=()=>document.getElementById('status');
+function setStatus(s){if(statusEl())statusEl().textContent=s}
+function setAdminUI(){
+ document.getElementById('adminBar').style.display=isAdmin?'block':'none';
+ document.getElementById('addForm').style.display=isAdmin?'block':'none';
+ document.getElementById('addForm').querySelector('button[type="submit"]').style.display=isAdmin?'block':'none';
+ document.getElementById('adminIdentity').textContent=isAdmin?'Đã đăng nhập quản trị':'';
+ document.getElementById('loginPanel').style.display=(CLOUD_CONFIGURED&&!isAdmin)?'block':'none';
+ document.getElementById('adminHint').style.display=isAdmin?'none':'block';
+}
+function saveLocal(){localStorage.setItem(STORAGE_KEY,JSON.stringify(places))}
+async function savePlaces(){
+ if(CLOUD_CONFIGURED){
+  if(!isAdmin||!db) throw new Error('Chỉ quản trị viên đã đăng nhập mới được sửa dữ liệu.');
+  await set(ref(db,'places'),places);
+ } else {
+  if(!isAdmin) throw new Error('Chế độ local chỉ cho phép sửa khi bật quản trị local trong mã nguồn.');
+  saveLocal();
+ }
+ render();
+}
+function popup(p){return `<div class="popup-title">${esc(p.name)}</div><div class="popup-type">${esc(p.type)}</div><div class="popup-desc">${esc(p.desc||'Chưa có mô tả')}<br><small>Tọa độ: ${Number(p.lat).toFixed(4)}, ${Number(p.lng).toFixed(4)}</small></div>`}
+function render(){
+ markerLayer.clearLayers();
+ const q=document.getElementById('search').value.trim().toLocaleLowerCase('vi');
+ const f=document.getElementById('filter').value;
+ const filtered=places.filter(p=>(!q||(p.name+' '+p.type+' '+p.desc).toLocaleLowerCase('vi').includes(q))&&(!f||p.type===f));
+ filtered.forEach(p=>L.marker([Number(p.lat),Number(p.lng)]).bindPopup(popup(p)).addTo(markerLayer));
+ document.getElementById('count').textContent=places.length;
+ const list=document.getElementById('places');list.innerHTML='';
+ if(!filtered.length){list.innerHTML='<div class="note">Không tìm thấy địa điểm phù hợp.</div>';return}
+ filtered.forEach(p=>{const el=document.createElement('div');el.className='place';el.innerHTML=`<b>${esc(p.name)}</b><small>${esc(p.type)} · ${Number(p.lat).toFixed(3)}, ${Number(p.lng).toFixed(3)}</small>`;el.onclick=()=>{map.setView([Number(p.lat),Number(p.lng)],Math.max(map.getZoom(),7));markerLayer.eachLayer(m=>{if(m.getLatLng().lat===Number(p.lat)&&m.getLatLng().lng===Number(p.lng))m.openPopup()})};list.appendChild(el)});
+}
+async function initCloud(){
+ const app=initializeApp(FIREBASE_CONFIG);
+ auth=getAuth(app);db=getDatabase(app);
+ onAuthStateChanged(auth,user=>{
+  isAdmin=!!user && user.uid===ADMIN_UID;
+  setAdminUI();
+  if(user && !isAdmin) setStatus('Tài khoản này không có quyền quản trị. Dữ liệu vẫn chỉ đọc.');
+  if(stopCloudListener){stopCloudListener();stopCloudListener=null}
+  stopCloudListener=onValue(ref(db,'places'),snapshot=>{
+    cloudReady=true;
+    if(snapshot.exists()){
+      const val=snapshot.val();
+      places=Array.isArray(val)?val:Object.values(val||{});
+      setStatus(isAdmin?'Đã kết nối cloud · Bạn đang đăng nhập quản trị.':'Đã kết nối dữ liệu trực tuyến · Chế độ chỉ xem.');
+    }else{
+      places=initialPlaces.slice();
+      setStatus(isAdmin?'Cơ sở dữ liệu đang trống. Bấm “Đưa dữ liệu mẫu lên cloud” để khởi tạo.':'Cloud chưa có dữ liệu; quản trị viên cần khởi tạo dữ liệu.');
+    }
+    render();
+  },err=>setStatus('Không đọc được dữ liệu cloud. Kiểm tra cấu hình và Firebase Rules: '+err.message));
+ });
+}
+document.getElementById('addForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!isAdmin){alert('Chỉ quản trị viên mới được thêm địa điểm.');return}
+ const name=document.getElementById('name').value.trim(),lat=Number(document.getElementById('lat').value),lng=Number(document.getElementById('lng').value);
+ if(!name||!Number.isFinite(lat)||!Number.isFinite(lng)||lat < -90||lat>90||lng < -180||lng>180){alert('Vui lòng nhập tên và tọa độ hợp lệ.');return}
+ places.push({id:'p'+Date.now(),name,type:document.getElementById('type').value,lat,lng,desc:document.getElementById('desc').value.trim()});
+ try{await savePlaces();e.target.reset();map.setView([lat,lng],7);setStatus('Đã lưu địa điểm lên cơ sở dữ liệu trực tuyến.')}catch(err){alert(err.message);places=places.filter(p=>p.id!=='p'+Date.now())}
+});
+document.getElementById('search').addEventListener('input',render);
+document.getElementById('filter').addEventListener('change',render);
+document.getElementById('showAll').onclick=()=>map.setView([13.2,110.2],5);
+document.getElementById('export').onclick=()=>{const blob=new Blob([JSON.stringify(places,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='du-lieu-bien-dao-viet-nam.json';a.click();URL.revokeObjectURL(a.href)};
+document.getElementById('importBtn').onclick=()=>{if(!isAdmin){alert('Chỉ quản trị viên mới được nhập dữ liệu.');return}document.getElementById('importFile').click()};
+document.getElementById('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(!isAdmin)throw new Error('Chỉ quản trị viên mới được nhập dữ liệu.');const data=JSON.parse(await file.text());if(!Array.isArray(data)||!data.every(p=>p.name&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)>=-90&&Number(p.lat)<=90&&Number(p.lng)>=-180&&Number(p.lng)<=180))throw new Error('Tệp JSON không đúng định dạng.');places=data.map((p,i)=>({...p,id:p.id||'import'+i,lat:Number(p.lat),lng:Number(p.lng)}));await savePlaces();setStatus('Đã nhập dữ liệu thành công.')}catch(err){alert(err.message)}e.target.value=''});
+document.getElementById('loginForm').addEventListener('submit',async e=>{e.preventDefault();if(!CLOUD_CONFIGURED){setStatus('Cần cấu hình Firebase và ADMIN_UID trong mã nguồn trước.');return}try{await signInWithEmailAndPassword(auth,document.getElementById('adminEmail').value.trim(),document.getElementById('adminPassword').value);document.getElementById('adminPassword').value='';}catch(err){setStatus('Đăng nhập thất bại: '+err.message)}});
+document.getElementById('logout').onclick=()=>signOut(auth);
+document.getElementById('seedCloud').onclick=async()=>{if(!isAdmin){alert('Chỉ quản trị viên mới được thực hiện.');return}if(!confirm('Ghi dữ liệu mẫu vào cơ sở dữ liệu trực tuyến? Dữ liệu hiện có sẽ bị thay thế.'))return;try{await set(ref(db,'places'),initialPlaces);setStatus('Đã khởi tạo dữ liệu mẫu trên cloud.')}catch(err){setStatus('Không thể ghi dữ liệu: '+err.message)}};
+if(CLOUD_CONFIGURED){
+ document.getElementById('adminHint').textContent='Bạn đang ở chế độ chỉ xem. Đăng nhập quản trị ở đây để chỉnh sửa.';
+ initCloud().catch(err=>setStatus('Không khởi tạo được Firebase: '+err.message));
+}else{
+ places=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null')||initialPlaces.slice();
+ isAdmin=false;setAdminUI();render();
+ setStatus('Chế độ xem thử/local: dữ liệu chỉ nằm trên thiết bị này. Điền cấu hình Firebase và UID quản trị để bật chia sẻ trực tuyến.');
+ document.getElementById('adminHint').textContent='Chế độ xem thử chưa kết nối cloud. Khi cấu hình Firebase, chỉ tài khoản quản trị mới có thể sửa.';
+}
+</script>)=>document.getElementById('importFile').click();
+document.getElementById('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data)||!data.every(p=>p.name&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))))throw new Error('format');places=data.map((p,i)=>({...p,id:p.id||'import'+i,lat:Number(p.lat),lng:Number(p.lng)}));save();document.getElementById('status').textContent='Đã nhập dữ liệu từ tệp JSON.'}catch{alert('Tệp JSON không đúng định dạng địa điểm của bản đồ.')}e.target.value=''});
+render();
+</script>
+</body>
+</html>

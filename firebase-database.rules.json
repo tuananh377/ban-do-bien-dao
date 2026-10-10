@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "places": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'PASTE_ADMIN_UID_HERE'"
+    }
+  }
+}
